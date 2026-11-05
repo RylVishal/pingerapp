@@ -1,0 +1,29 @@
+
+name: Frontend CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/frontend/**'
+      - '.github/workflows/**'
+
+  push:
+    branches: [main]
+    paths:
+      - 'app/frontend/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  frontend-ci:
+    uses: ./.github/workflows/reusable-node-ci.yml
+    with:
+      service-name: frontend
+      service-directory: app/frontend
+      image-name: pinger-frontend
+      sonar-organization: rylvishal
+      sonar-project-key: pingerapp-frontend
+    secrets: inherit

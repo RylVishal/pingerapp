@@ -1,0 +1,29 @@
+
+name: Pinger V2 CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/pinger/v2/**'
+      - '.github/workflows/**'
+
+  push:
+    branches: [main]
+    paths:
+      - 'app/pinger/v2/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  pinger-v2-ci:
+    uses: ./.github/workflows/reusable-node-ci.yml
+    with:
+      service-name: pinger-v2
+      service-directory: app/pinger/v2
+      image-name: pinger-v2
+      sonar-organization: rylvishal
+      sonar-project-key: pingerapp-pinger-v2
+    secrets: inherit
