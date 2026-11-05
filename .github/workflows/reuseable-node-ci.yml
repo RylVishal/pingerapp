@@ -1,0 +1,107 @@
+
+name: Reusable Node.js CI
+
+on:
+  workflow_call:
+    inputs:
+      service-name:
+        required: true
+        type: string
+      service-directory:
+        required: true
+        type: string
+      image-name:
+        required: true
+        type: string
+      sonar-project-key:
+        required: true
+        type: string
+      sonar-organization:
+        required: true
+        type: string
+
+    secrets:
+      SONAR_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-scan:
+    name: Build and Scan - ${{ inputs.service-name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7.1.0
+        with:
+          node-version: 20.19.5
+          cache: npm
+          cache-dependency-path: ${{ inputs.service-directory }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ inputs.service-directory }}
+        run: npm ci
+
+      - name: JavaScript syntax validation
+        working-directory: ${{ inputs.service-directory }}
+        shell: bash
+        run: |
+          find . -type f -name "*.js" \
+            -not -path "./node_modules/*" \
+            -print0 | xargs -0 -r -n1 node --check
+
+      - name: SonarQube Cloud analysis
+        uses: SonarSource/sonarqube-scan-action@v8.3.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: ${{ inputs.service-directory }}
+          args: >
+            -Dsonar.organization=${{ inputs.sonar-organization }}
+            -Dsonar.projectKey=${{ inputs.sonar-project-key }}
+            -Dsonar.sources=.
+            -Dsonar.qualitygate.wait=true
+
+      - name: Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ inputs.service-directory }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+
+      - name: Setup Docker Buildx
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ inputs.service-directory }}
+          file: ${{ inputs.service-directory }}/Dockerfile
+          push: false
+          load: true
+          tags: ${{ inputs.image-name }}:${{ github.sha }}
+
+      - name: Trivy Docker image scan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ inputs.image-name }}:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL

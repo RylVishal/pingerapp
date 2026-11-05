@@ -1,0 +1,29 @@
+
+name: Details CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/details/**'
+      - '.github/workflows/**'
+
+  push:
+    branches: [main]
+    paths:
+      - 'app/details/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+
+jobs:
+  details-ci:
+    uses: ./.github/workflows/reusable-node-ci.yml
+    with:
+      service-name: details
+      service-directory: app/details
+      image-name: pinger-details
+      sonar-organization: rylvishal
+      sonar-project-key: pingerapp-details
+    secrets: inherit

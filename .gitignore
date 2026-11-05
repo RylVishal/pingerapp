@@ -1,9 +1,25 @@
-node_modules
-node_modules/*
+# Dependencies
+node_modules/
 
-# Terraform local files
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+
+# Terraform
 **/.terraform/*
 *.tfstate
 *.tfstate.*
-crash.log
-crash.*.log
+*.tfvars
+*.tfvars.json
